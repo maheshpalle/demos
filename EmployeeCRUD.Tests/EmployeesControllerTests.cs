@@ -2,12 +2,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using EmployeeCRUD.Controllers;
 using EmployeeCRUD.Data;
 using EmployeeCRUD.Models;
 
 namespace EmployeeCRUD.Tests;
+
+// -----------------------------------------------------------------------
+// Ahoy! These be the tests for the EmployeesController — the ship's
+// quartermaster who manages the entire crew manifest.
+// Every action is verified here so no scallywag slips through unnoticed!
+// -----------------------------------------------------------------------
 
 public class EmployeesControllerTests : IDisposable
 {
@@ -32,9 +39,10 @@ public class EmployeesControllerTests : IDisposable
     // Helpers
     // -----------------------------------------------------------------------
 
+    // Rig the ship — build a controller with a null logger (no logbook needed in tests)
     private static EmployeesController BuildController(ApplicationDbContext ctx)
     {
-        var controller = new EmployeesController(ctx);
+        var controller = new EmployeesController(ctx, NullLogger<EmployeesController>.Instance);
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         controller.TempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
@@ -54,7 +62,7 @@ public class EmployeesControllerTests : IDisposable
     };
 
     // -----------------------------------------------------------------------
-    // Index
+    // Index — All hands on deck!
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -67,7 +75,7 @@ public class EmployeesControllerTests : IDisposable
     }
 
     // -----------------------------------------------------------------------
-    // Details
+    // Details — Inspecting a sailor's dossier
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -101,7 +109,7 @@ public class EmployeesControllerTests : IDisposable
     }
 
     // -----------------------------------------------------------------------
-    // Create GET
+    // Create GET — Hoist the enlistment flag!
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -113,7 +121,7 @@ public class EmployeesControllerTests : IDisposable
     }
 
     // -----------------------------------------------------------------------
-    // Create POST
+    // Create POST — Welcome aboard, ye new recruit!
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -131,6 +139,7 @@ public class EmployeesControllerTests : IDisposable
     [Fact]
     public async Task CreatePost_InvalidModel_ReturnsViewWithEmployee()
     {
+        // Bad paperwork — back to the brig!
         _controller.ModelState.AddModelError("FirstName", "Required");
         var emp = CreateEmployee(0);
 
@@ -141,7 +150,7 @@ public class EmployeesControllerTests : IDisposable
     }
 
     // -----------------------------------------------------------------------
-    // Edit GET
+    // Edit GET — Update the crew manifest entry
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -175,12 +184,13 @@ public class EmployeesControllerTests : IDisposable
     }
 
     // -----------------------------------------------------------------------
-    // Edit POST
+    // Edit POST — Seal the updated logbook entry
     // -----------------------------------------------------------------------
 
     [Fact]
     public async Task EditPost_IdMismatch_ReturnsNotFound()
     {
+        // Mutiny! The IDs don't match — walk the plank!
         var emp = CreateEmployee(30);
 
         var result = await _controller.Edit(99, emp);
@@ -221,7 +231,7 @@ public class EmployeesControllerTests : IDisposable
     }
 
     // -----------------------------------------------------------------------
-    // Edit POST – concurrency handling
+    // Edit POST – concurrency handling (two pirates grabbing the same treasure)
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -268,7 +278,7 @@ public class EmployeesControllerTests : IDisposable
     }
 
     // -----------------------------------------------------------------------
-    // Delete GET
+    // Delete GET — Confirm the keelhauling
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -302,7 +312,7 @@ public class EmployeesControllerTests : IDisposable
     }
 
     // -----------------------------------------------------------------------
-    // Delete POST (DeleteConfirmed)
+    // Delete POST (DeleteConfirmed) — Keelhaul the scallywag!
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -323,6 +333,7 @@ public class EmployeesControllerTests : IDisposable
     [Fact]
     public async Task DeleteConfirmed_NonExistentEmployee_RedirectsToIndexWithoutError()
     {
+        // Ghost sailor — they were never on the manifest!
         var result = await _controller.DeleteConfirmed(999);
 
         var redirect = Assert.IsType<RedirectToActionResult>(result);
@@ -352,7 +363,7 @@ public class EmployeesControllerTests : IDisposable
     [Fact]
     public async Task EmployeeExists_ReturnsFalseForNonExistingEmployee_ViaNotFound()
     {
-        // No employee with Id=91 in the DB; concurrency path should return NotFound
+        // No sailor with Id=91 in the manifest; concurrency path should return NotFound
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
